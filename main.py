@@ -5,7 +5,7 @@ from mcp.server.fastmcp.prompts import base
 from PIL import Image as PILImage
 
 # Initialize FastMCP server
-mcp = FastMCP("weather")
+mcp = FastMCP("weather", dependencies=["Pillow","mcp-server-time"])
 
 # Constants
 NWS_API_BASE = "https://api.weather.gov"

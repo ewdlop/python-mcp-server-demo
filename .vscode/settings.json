@@ -1,0 +1,28 @@
+{
+    "mcp": {
+
+        "inputs": [],
+        "servers": {
+            "mcp-server-time": {
+                "command": "python",
+                "args": [
+                    "-m",
+                    "mcp_server_time",
+                    "--local-timezone=America/Los_Angeles"
+                ],
+                "env": {}
+            },
+            "Demo": {
+                "command": "C:\\Users\\Owner\\.local\\bin\\uv.EXE",
+                "args": [
+                    "run",
+                    "--with",
+                    "mcp[cli]",
+                    "mcp",
+                    "run",
+                    "C:\\Games\\PythonMCPServerApp\\mcp-server-demo\\main.py"
+                ],
+            }
+        }
+    }
+}

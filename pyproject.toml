@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "mcp-server-time>=0.6.2",
     "mcp[cli]>=1.9.2",
     "pillow>=11.2.1",
 ]
