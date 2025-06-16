@@ -4,7 +4,7 @@ from mcp.server.fastmcp import FastMCP, Image
 from mcp.server.fastmcp.prompts import base
 from PIL import Image as PILImage
 import sympy as sp
-from sympy import symbols, sympify, latex
+from sympy import symbols, sympify, latex, pi, E, I, sqrt, cos, sin, exp
 from sympy.crypto.crypto import (
     encipher_shift, decipher_shift,
     encipher_vigenere, decipher_vigenere,
@@ -16,6 +16,20 @@ from sympy.crypto.crypto import (
     encode_morse, decode_morse,
     encipher_bifid, decipher_bifid
 )
+from sympy.physics.units import (
+    meter, kilogram, second, ampere, kelvin, mole, candela,
+    newton, joule, watt, pascal, hertz, coulomb, volt, ohm,
+    speed_of_light, planck, boltzmann, avogadro,
+    convert_to
+)
+from sympy.physics.mechanics import dynamicsymbols, ReferenceFrame, Point, Particle
+from sympy.physics.optics import RayTransferMatrix, ThinLens, FreeSpace
+from sympy.physics.quantum import (
+    Qubit, measure_all, qapply, Ket, Bra,
+    Commutator, Dagger, TensorProduct
+)
+from sympy.physics.quantum.pauli import SigmaX, SigmaY, SigmaZ
+from sympy.physics.quantum.spin import JxKet, Jz
 
 # Initialize FastMCP server
 mcp = FastMCP("weather", dependencies=["Pillow","mcp-server-time", "sympy"])
@@ -450,6 +464,251 @@ async def encrypt_substitution_cipher(message: str, key: str) -> str:
         return f"原始訊息: {message}\n替換密鑰: {key}\n加密結果: {encrypted}"
     except Exception as e:
         return f"替換密碼加密失敗：{str(e)}"
+
+@mcp.tool()
+async def convert_units(value: float, from_unit: str, to_unit: str) -> str:
+    """單位轉換工具
+    
+    Args:
+        value: 數值
+        from_unit: 原始單位（如：meter, kilogram, second等）
+        to_unit: 目標單位
+    """
+    try:
+        # 定義常用單位對應表
+        unit_map = {
+            'meter': meter, 'm': meter,
+            'kilogram': kilogram, 'kg': kilogram,
+            'second': second, 's': second,
+            'newton': newton, 'N': newton,
+            'joule': joule, 'J': joule,
+            'watt': watt, 'W': watt,
+            'pascal': pascal, 'Pa': pascal,
+            'hertz': hertz, 'Hz': hertz,
+            'coulomb': coulomb, 'C': coulomb,
+            'volt': volt, 'V': volt,
+            'ohm': ohm, 'Ω': ohm
+        }
+        
+        from_u = unit_map.get(from_unit)
+        to_u = unit_map.get(to_unit)
+        
+        if not from_u or not to_u:
+            return f"不支援的單位：{from_unit} 或 {to_unit}"
+        
+        quantity = value * from_u
+        converted = convert_to(quantity, to_u)
+        
+        return f"單位轉換結果：\n{value} {from_unit} = {float(converted/to_u)} {to_unit}"
+    except Exception as e:
+        return f"單位轉換失敗：{str(e)}"
+
+@mcp.tool()
+async def calculate_kinetic_energy(mass: float, velocity: float) -> str:
+    """計算動能 KE = 1/2 * m * v²
+    
+    Args:
+        mass: 質量（公斤）
+        velocity: 速度（公尺/秒）
+    """
+    try:
+        ke = sp.Rational(1, 2) * mass * velocity**2
+        return f"動能計算：\n質量: {mass} kg\n速度: {velocity} m/s\n動能: {ke} J = {float(ke)} J"
+    except Exception as e:
+        return f"動能計算失敗：{str(e)}"
+
+@mcp.tool()
+async def calculate_potential_energy(mass: float, height: float, gravity: float = 9.81) -> str:
+    """計算重力位能 PE = m * g * h
+    
+    Args:
+        mass: 質量（公斤）
+        height: 高度（公尺）
+        gravity: 重力加速度（預設9.81 m/s²）
+    """
+    try:
+        pe = mass * gravity * height
+        return f"重力位能計算：\n質量: {mass} kg\n高度: {height} m\n重力加速度: {gravity} m/s²\n位能: {pe} J"
+    except Exception as e:
+        return f"位能計算失敗：{str(e)}"
+
+@mcp.tool()
+async def calculate_force(mass: float, acceleration: float) -> str:
+    """計算力 F = m * a（牛頓第二定律）
+    
+    Args:
+        mass: 質量（公斤）
+        acceleration: 加速度（公尺/秒²）
+    """
+    try:
+        force = mass * acceleration
+        return f"力的計算（牛頓第二定律）：\n質量: {mass} kg\n加速度: {acceleration} m/s²\n力: {force} N"
+    except Exception as e:
+        return f"力計算失敗：{str(e)}"
+
+@mcp.tool()
+async def calculate_momentum(mass: float, velocity: float) -> str:
+    """計算動量 p = m * v
+    
+    Args:
+        mass: 質量（公斤）
+        velocity: 速度（公尺/秒）
+    """
+    try:
+        momentum = mass * velocity
+        return f"動量計算：\n質量: {mass} kg\n速度: {velocity} m/s\n動量: {momentum} kg⋅m/s"
+    except Exception as e:
+        return f"動量計算失敗：{str(e)}"
+
+@mcp.tool()
+async def calculate_wave_properties(frequency: float = None, wavelength: float = None, wave_speed: float = None) -> str:
+    """計算波的性質 v = f * λ
+    
+    Args:
+        frequency: 頻率（赫茲），提供其中兩個參數
+        wavelength: 波長（公尺）
+        wave_speed: 波速（公尺/秒，光速約3×10⁸）
+    """
+    try:
+        provided = sum([x is not None for x in [frequency, wavelength, wave_speed]])
+        if provided != 2:
+            return "請提供三個參數中的任意兩個（頻率、波長、波速）"
+        
+        if frequency is None:
+            frequency = wave_speed / wavelength
+            missing = "頻率"
+            result = frequency
+            unit = "Hz"
+        elif wavelength is None:
+            wavelength = wave_speed / frequency
+            missing = "波長"
+            result = wavelength
+            unit = "m"
+        else:  # wave_speed is None
+            wave_speed = frequency * wavelength
+            missing = "波速"
+            result = wave_speed
+            unit = "m/s"
+        
+        return f"波的性質計算：\n頻率: {frequency} Hz\n波長: {wavelength} m\n波速: {wave_speed} m/s\n計算得出的{missing}: {result} {unit}"
+    except Exception as e:
+        return f"波性質計算失敗：{str(e)}"
+
+@mcp.tool()
+async def calculate_photon_energy(frequency: float = None, wavelength: float = None) -> str:
+    """計算光子能量 E = h * f = h * c / λ
+    
+    Args:
+        frequency: 頻率（赫茲）
+        wavelength: 波長（公尺）
+    """
+    try:
+        if frequency is None and wavelength is None:
+            return "請提供頻率或波長"
+        
+        h = planck  # 普朗克常數
+        c = speed_of_light  # 光速
+        
+        if frequency is not None:
+            energy = h * frequency
+            return f"光子能量計算：\n頻率: {frequency} Hz\n能量: {energy} = {float(energy)} J"
+        else:
+            energy = h * c / wavelength
+            return f"光子能量計算：\n波長: {wavelength} m\n能量: {energy} = {float(energy)} J"
+    except Exception as e:
+        return f"光子能量計算失敗：{str(e)}"
+
+@mcp.tool()
+async def thin_lens_calculation(focal_length: float, object_distance: float) -> str:
+    """薄透鏡公式計算 1/f = 1/u + 1/v
+    
+    Args:
+        focal_length: 焦距（公尺）
+        object_distance: 物距（公尺）
+    """
+    try:
+        # 1/f = 1/u + 1/v => 1/v = 1/f - 1/u
+        image_distance = 1 / (1/focal_length - 1/object_distance)
+        magnification = -image_distance / object_distance
+        
+        return f"薄透鏡計算：\n焦距: {focal_length} m\n物距: {object_distance} m\n像距: {image_distance:.4f} m\n放大率: {magnification:.4f}"
+    except Exception as e:
+        return f"薄透鏡計算失敗：{str(e)}"
+
+@mcp.tool()
+async def create_qubit_state(alpha: float, beta: float) -> str:
+    """創建量子位元狀態 |ψ⟩ = α|0⟩ + β|1⟩
+    
+    Args:
+        alpha: |0⟩狀態的振幅
+        beta: |1⟩狀態的振幅
+    """
+    try:
+        # 檢查歸一化條件
+        norm_squared = alpha**2 + beta**2
+        if abs(norm_squared - 1) > 0.001:
+            return f"警告：狀態未歸一化，|α|² + |β|² = {norm_squared:.4f} ≠ 1"
+        
+        # 創建量子位元狀態
+        state = alpha * Qubit('0') + beta * Qubit('1')
+        
+        return f"量子位元狀態：\n|ψ⟩ = {alpha}|0⟩ + {beta}|1⟩\n狀態表示: {state}\n歸一化檢查: |α|² + |β|² = {norm_squared:.4f}"
+    except Exception as e:
+        return f"量子位元狀態創建失敗：{str(e)}"
+
+@mcp.tool()
+async def apply_pauli_gates(gate_type: str, qubit_state: str = "0") -> str:
+    """應用Pauli閘到量子位元
+    
+    Args:
+        gate_type: 閘類型（X, Y, Z）
+        qubit_state: 初始量子位元狀態（'0'或'1'）
+    """
+    try:
+        # 選擇Pauli閘
+        if gate_type.upper() == 'X':
+            gate = SigmaX()
+        elif gate_type.upper() == 'Y':
+            gate = SigmaY()
+        elif gate_type.upper() == 'Z':
+            gate = SigmaZ()
+        else:
+            return "不支援的閘類型，請使用 X, Y, 或 Z"
+        
+        # 創建初始狀態
+        initial_state = Qubit(qubit_state)
+        
+        # 應用閘
+        result = qapply(gate * initial_state)
+        
+        return f"Pauli-{gate_type.upper()}閘應用：\n初始狀態: |{qubit_state}⟩\n應用 {gate_type.upper()} 閘\n結果狀態: {result}"
+    except Exception as e:
+        return f"Pauli閘應用失敗：{str(e)}"
+
+@mcp.tool()
+async def calculate_commutator(operator_a: str, operator_b: str) -> str:
+    """計算量子算符的對易子 [A, B] = AB - BA
+    
+    Args:
+        operator_a: 第一個算符（如：'X', 'Y', 'Z'）
+        operator_b: 第二個算符
+    """
+    try:
+        # 簡化的Pauli算符對易子計算
+        pauli_map = {'X': SigmaX(), 'Y': SigmaY(), 'Z': SigmaZ()}
+        
+        if operator_a not in pauli_map or operator_b not in pauli_map:
+            return "目前只支援Pauli算符 X, Y, Z"
+        
+        A = pauli_map[operator_a]
+        B = pauli_map[operator_b]
+        
+        comm = Commutator(A, B)
+        result = comm.doit()
+        
+        return f"對易子計算：\n[{operator_a}, {operator_b}] = {operator_a}{operator_b} - {operator_b}{operator_a}\n結果: {result}"
+    except Exception as e:
+        return f"對易子計算失敗：{str(e)}"
 
 if __name__ == "__main__":
     # Initialize and run the server
