@@ -7,5 +7,8 @@ requires-python = ">=3.11"
 dependencies = [
     "mcp-server-time>=0.6.2",
     "mcp[cli]>=1.9.2",
+    "numpy>=2.3.0",
     "pillow>=11.2.1",
+    "scipy>=1.15.3",
+    "sympy>=1.14.0",
 ]
